@@ -19,96 +19,54 @@ echo
 
 # 结果变量
 ACTIVE_MANAGER=""
+DETAILS=""
 
 ### 1. systemd-networkd
 if check_service "systemd-networkd"; then
     ACTIVE_MANAGER="systemd-networkd"
-    echo
-    echo "【systemd-networkd 配置文件】"
-    echo "  - /etc/systemd/network/*.network"
-    echo "  - /etc/systemd/network/*.netdev"
-    echo "  - /etc/systemd/network/*.link"
-    echo
-    echo "【修改方式】"
-    echo "  编辑对应的 .network 文件后执行："
-    echo "    sudo systemctl restart systemd-networkd"
-    echo
+    DETAILS="【systemd-networkd 配置文件】\n  - /etc/systemd/network/*.network\n  - /etc/systemd/network/*.netdev\n  - /etc/systemd/network/*.link\n\n【修改方式】\n  编辑对应的 .network 文件后执行：\n    sudo systemctl restart systemd-networkd\n"
 fi
 
 ### 2. NetworkManager
 if check_service "NetworkManager"; then
     ACTIVE_MANAGER="NetworkManager"
-    echo
-    echo "【NetworkManager 配置文件】"
-    echo "  - /etc/NetworkManager/NetworkManager.conf"
-    echo "  - /etc/NetworkManager/system-connections/*.nmconnection"
-    echo
-    echo "【修改方式】"
-    echo "  使用 nmcli 或编辑 .nmconnection 文件："
-    echo "    sudo nmcli connection show"
-    echo "    sudo nmcli connection edit <name>"
-    echo
+    DETAILS="【NetworkManager 配置文件】\n  - /etc/NetworkManager/NetworkManager.conf\n  - /etc/NetworkManager/system-connections/*.nmconnection\n\n【修改方式】\n  使用 nmcli 或编辑 .nmconnection 文件：\n    sudo nmcli connection show\n    sudo nmcli connection edit <name>\n"
 fi
 
 ### 3. ifupdown / ifupdown2
 if [ -f /etc/network/interfaces ] && grep -q "iface" /etc/network/interfaces; then
     if dpkg -l | grep -q ifupdown2; then
         ACTIVE_MANAGER="ifupdown2"
-        echo
-        echo "【ifupdown2 配置文件】"
-        echo "  - /etc/network/interfaces"
-        echo "  - /etc/network/interfaces.d/*.cfg"
-        echo
-        echo "【修改方式】"
-        echo "  修改后无需重启网络，可直接 reload："
-        echo "    sudo ifreload -a"
-        echo
+        DETAILS="【ifupdown2 配置文件】\n  - /etc/network/interfaces\n  - /etc/network/interfaces.d/*.cfg\n\n【修改方式】\n  修改后无需重启网络，可直接 reload：\n    sudo ifreload -a\n"
     else
         ACTIVE_MANAGER="ifupdown"
-        echo
-        echo "【ifupdown 配置文件】"
-        echo "  - /etc/network/interfaces"
-        echo "  - /etc/network/interfaces.d/*.cfg"
-        echo
-        echo "【修改方式】"
-        echo "    sudo ifdown <iface> && sudo ifup <iface>"
-        echo
+        DETAILS="【ifupdown 配置文件】\n  - /etc/network/interfaces\n  - /etc/network/interfaces.d/*.cfg\n\n【修改方式】\n    sudo ifdown <iface> && sudo ifup <iface>\n"
     fi
 fi
 
 ### 4. ConnMan
 if check_service "connman"; then
     ACTIVE_MANAGER="ConnMan"
-    echo
-    echo "【ConnMan 配置文件】"
-    echo "  - /etc/connman/main.conf"
-    echo "  - /var/lib/connman/*"
-    echo
-    echo "【修改方式】"
-    echo "    sudo connmanctl"
-    echo
+    DETAILS="【ConnMan 配置文件】\n  - /etc/connman/main.conf\n  - /var/lib/connman/*\n\n【修改方式】\n    sudo connmanctl\n"
 fi
 
 ### 5. wicked（SUSE 系常见，但 Debian 也可能安装）
 if check_service "wickedd"; then
     ACTIVE_MANAGER="wicked"
-    echo
-    echo "【wicked 配置文件】"
-    echo "  - /etc/sysconfig/network/ifcfg-*"
-    echo
-    echo "【修改方式】"
-    echo "    sudo wicked ifup <iface>"
-    echo
+    DETAILS="【wicked 配置文件】\n  - /etc/sysconfig/network/ifcfg-*\n\n【修改方式】\n    sudo wicked ifup <iface>\n"
 fi
 
-echo "====================================="
+echo
+echo "检测完成。"
 echo
 
 if [ -z "$ACTIVE_MANAGER" ]; then
     echo "⚠️ 未检测到常见网络管理器。可能是手动使用 ip/ifconfig 管理网络。"
 else
     echo "✔ 当前检测到的网络管理器：$ACTIVE_MANAGER"
+    echo
+    echo -e "$DETAILS"
 fi
 
+echo "====================================="
 echo
-echo "检测完成。"
