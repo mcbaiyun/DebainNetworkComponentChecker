@@ -27,6 +27,41 @@ if check_service "systemd-networkd"; then
     DETAILS="【systemd-networkd 配置文件】\n  - /etc/systemd/network/*.network\n  - /etc/systemd/network/*.netdev\n  - /etc/systemd/network/*.link\n\n【修改方式】\n  编辑对应的 .network 文件后执行：\n    sudo systemctl restart systemd-networkd\n"
 fi
 
+### 检测 netplan（常见于 cloud-init 管理的 VPS）
+if [ -d /etc/netplan ] && ls /etc/netplan/*.yaml >/dev/null 2>&1; then
+    ACTIVE_MANAGER="netplan"
+    DETAILS="【netplan 配置文件】\n  - /etc/netplan/*.yaml\n\n【修改方式】\n  编辑 YAML 文件后执行：\n    sudo netplan apply\n"
+
+    # 检测 cloud-init 是否管理网络（cloud-init 会生成 netplan 配置）
+    if [ -f /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg ]; then
+        CLOUDINIT_NET="disabled"
+    else
+        CLOUDINIT_NET="enabled"
+    fi
+
+    DETAILS+="\n【cloud-init 网络管理】\n"
+    if [ "$CLOUDINIT_NET" = "enabled" ]; then
+        DETAILS+="  - cloud-init 正在管理网络（会生成 /etc/netplan/50-cloud-init.yaml）\n"
+        DETAILS+="\n【方法 A — 通过 cloud-init 管理网络（推荐在云环境）】\n"
+        DETAILS+="  - 修改 cloud-init 用户数据（User-Data）或 /etc/cloud/cloud.cfg.d/ 中的网络配置，cloud-init 会生成 netplan 文件。\n"
+        DETAILS+="  - cloud-init 通常在首次启动、手动运行网络模块、执行 'cloud-init clean' 后，或云平台重新注入 metadata 时，才会重新生成 netplan。\n"
+        DETAILS+="  - 如需在实例内尝试重新生成并应用（有断网风险，确保你有控制台/救援访问权限）：\n"
+        DETAILS+="      sudo cloud-init single --name cc_network_config --frequency always\n"
+        DETAILS+="    （或可能使用 'sudo cloud-init init'，但不保证会重新生成网络配置，取决于 datasource 与配置）\n"
+        DETAILS+="  - netplan 文件更新后执行：\n"
+        DETAILS+="      sudo netplan apply\n\n"
+        DETAILS+="【方法 B — 禁用 cloud-init 网络管理并直接管理 netplan】\n"
+        DETAILS+="  - 禁用 cloud-init 的网络模块（此后 cloud-init 不会覆盖 /etc/netplan/50-cloud-init.yaml）：\n"
+        DETAILS+="      sudo bash -c 'echo \"network: {config: disabled}\" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'\n"
+        DETAILS+="  - 之后你可以直接编辑 /etc/netplan/*.yaml（例如：/etc/netplan/01-netcfg.yaml）：\n"
+        DETAILS+="      sudo nano /etc/netplan/01-netcfg.yaml\n"
+        DETAILS+="  - 修改后执行：\n"
+        DETAILS+="      sudo netplan apply\n"
+    else
+        DETAILS+="  - cloud-init 网络管理已禁用\n"
+    fi
+fi
+
 ### 2. NetworkManager
 if check_service "NetworkManager"; then
     ACTIVE_MANAGER="NetworkManager"
